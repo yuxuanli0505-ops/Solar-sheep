@@ -36,8 +36,8 @@ jobs:
 
       - name: 上传并发布到测试服务器
         run: |
-          scp -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -P 22 \
-            "$RUNNER_TEMP/site.tar.gz" root@144.24.60.0:/tmp/solar-sheep-site.tar.gz
+          ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -p 22 root@144.24.60.0 \
+            'cat > /tmp/solar-sheep-site.tar.gz' < "$RUNNER_TEMP/site.tar.gz"
           ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -p 22 root@144.24.60.0 '
             mkdir -p /var/admin/solarSheepWeb && \
             find /var/admin/solarSheepWeb -mindepth 1 -maxdepth 1 -exec rm -rf {} + && \
