@@ -19,16 +19,28 @@ jobs:
       - name: 检出代码
         uses: actions/checkout@v4
 
-      - name: 部署到测试服务器
-        uses: up9cloud/action-rsync@master
-        env:
-          USER: root
-          HOST: 144.24.60.0
-          KEY: ${{ secrets.USAARMLOGIN_SSH_KEY }}
-          ARGS: >-
-            -avz --delete --exclude='.git/' --exclude='.github/'
-            --exclude='README.md' --exclude='.DS_Store'
-          SSH_ARGS: "-p 22 -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no"
-          SOURCE: ./
-          TARGET: /var/admin/solarSheepWeb/
-          VERBOSE: true
+      - name: 配置 SSH 私钥
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.USAARMLOGIN_SSH_KEY }}" > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+
+      - name: 打包站点文件
+        run: |
+          tar czf site.tar.gz \
+            --exclude=.git \
+            --exclude=.github \
+            --exclude=README.md \
+            --exclude=.DS_Store \
+            .
+
+      - name: 上传并发布到测试服务器
+        run: |
+          scp -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -P 22 \
+            site.tar.gz root@144.24.60.0:/tmp/solar-sheep-site.tar.gz
+          ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -p 22 root@144.24.60.0 '
+            mkdir -p /var/admin/solarSheepWeb && \
+            find /var/admin/solarSheepWeb -mindepth 1 -maxdepth 1 -exec rm -rf {} + && \
+            tar xzf /tmp/solar-sheep-site.tar.gz -C /var/admin/solarSheepWeb && \
+            rm -f /tmp/solar-sheep-site.tar.gz
+          '
