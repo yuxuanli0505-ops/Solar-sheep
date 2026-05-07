@@ -67,6 +67,14 @@ h1 {
   max-width: 760px;
 }
 
+.subtitle {
+  max-width: 780px;
+  margin: 14px 0 0;
+  color: #475b56;
+  font-size: 1.03rem;
+  line-height: 1.55;
+}
+
 h2 {
   margin-bottom: 14px;
   font-size: 1rem;
@@ -100,6 +108,13 @@ h3 {
   color: var(--green);
   font-size: 2.35rem;
   line-height: 1;
+}
+
+.score-card small {
+  margin-top: 6px;
+  color: var(--muted);
+  font-size: 0.74rem;
+  font-weight: 750;
 }
 
 .workspace {
@@ -150,6 +165,23 @@ h3 {
   gap: 8px;
 }
 
+.control-group {
+  display: grid;
+  gap: 12px;
+  padding: 14px;
+  border: 1px solid #e1e7e1;
+  border-radius: 8px;
+  background: #fbfcf8;
+}
+
+.control-group h3 {
+  margin-bottom: 0;
+  color: #33423e;
+  font-size: 0.78rem;
+  font-weight: 850;
+  text-transform: uppercase;
+}
+
 .control-top {
   display: flex;
   align-items: baseline;
@@ -179,6 +211,45 @@ h3 {
   justify-content: space-between;
   color: var(--muted);
   font-size: 0.72rem;
+}
+
+.preset-panel {
+  margin-bottom: 16px;
+  padding: 12px;
+  border: 1px solid #e1e7e1;
+  border-radius: 8px;
+  background: #f8fbf6;
+}
+
+.preset-panel > span {
+  display: block;
+  margin-bottom: 9px;
+  color: var(--muted);
+  font-size: 0.75rem;
+  font-weight: 850;
+  text-transform: uppercase;
+}
+
+.preset-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.preset-grid button {
+  min-height: 36px;
+  border: 1px solid #cbd8d0;
+  border-radius: 8px;
+  background: #ffffff;
+  color: #25322f;
+  cursor: pointer;
+  font-size: 0.78rem;
+  font-weight: 800;
+}
+
+.preset-grid button:hover {
+  border-color: var(--teal);
+  background: #eef6f2;
 }
 
 .sim-stage {
@@ -273,6 +344,52 @@ h3 {
   line-height: 1.45;
 }
 
+.score-breakdown {
+  margin-top: 16px;
+  padding: 14px;
+  border: 1px solid #e0e7df;
+  border-radius: 8px;
+  background: #fbfcf8;
+}
+
+.score-breakdown-list {
+  display: grid;
+  gap: 10px;
+}
+
+.score-row {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 10px;
+  align-items: center;
+}
+
+.score-row span {
+  color: #33423e;
+  font-size: 0.78rem;
+  font-weight: 800;
+}
+
+.score-row strong {
+  color: var(--teal);
+  font-size: 0.8rem;
+}
+
+.score-track {
+  grid-column: 1 / -1;
+  height: 7px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: #e6ece5;
+}
+
+.score-track i {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, var(--teal), var(--green));
+}
+
 .data-board {
   display: grid;
   grid-template-columns: minmax(360px, 1.25fr) minmax(320px, 0.75fr);
@@ -293,6 +410,69 @@ h3 {
 .summary-panel {
   margin-top: 16px;
   padding: 22px;
+}
+
+.insight-board {
+  display: grid;
+  grid-template-columns: minmax(340px, 0.9fr) minmax(420px, 1.1fr);
+  gap: 16px;
+  margin-top: 16px;
+}
+
+.verification-panel,
+.method-panel {
+  padding: 18px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.92);
+  box-shadow: var(--shadow);
+}
+
+.verification-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.verification-item {
+  padding: 12px;
+  border: 1px solid #e0e7df;
+  border-radius: 8px;
+  background: #fbfcf8;
+}
+
+.verification-item span {
+  display: block;
+  margin-bottom: 6px;
+  color: var(--muted);
+  font-size: 0.72rem;
+  font-weight: 850;
+  text-transform: uppercase;
+}
+
+.verification-item strong {
+  display: block;
+  color: #293633;
+  font-size: 0.96rem;
+}
+
+.verification-item small {
+  display: block;
+  margin-top: 4px;
+  color: var(--muted);
+  line-height: 1.35;
+}
+
+.assumption-list {
+  margin: 0;
+  padding-left: 20px;
+  color: #33423e;
+  font-size: 0.92rem;
+  line-height: 1.6;
+}
+
+.assumption-list li + li {
+  margin-top: 8px;
 }
 
 .summary-header {
@@ -373,7 +553,8 @@ h3 {
 
 @media (max-width: 1180px) {
   .workspace,
-  .data-board {
+  .data-board,
+  .insight-board {
     grid-template-columns: 1fr;
   }
 
@@ -388,6 +569,10 @@ h3 {
 
   .summary-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .control-group {
+    align-content: start;
   }
 }
 
@@ -407,7 +592,8 @@ h3 {
   }
 
   .controls,
-  .stage-overlay {
+  .stage-overlay,
+  .verification-grid {
     grid-template-columns: 1fr;
   }
 

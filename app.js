@@ -2,6 +2,7 @@ const controlsConfig = [
   {
     key: "humans",
     label: "Humans Supported",
+    group: "Human Demand",
     min: 500,
     max: 50000,
     step: 500,
@@ -11,6 +12,7 @@ const controlsConfig = [
   {
     key: "panels",
     label: "Solar Panels",
+    group: "Solar Infrastructure",
     min: 1000,
     max: 120000,
     step: 1000,
@@ -20,6 +22,7 @@ const controlsConfig = [
   {
     key: "energyDemand",
     label: "Clean Energy Demand",
+    group: "Human Demand",
     min: 100,
     max: 9000,
     step: 100,
@@ -29,6 +32,7 @@ const controlsConfig = [
   {
     key: "cleaning",
     label: "Panel Cleaning",
+    group: "Solar Infrastructure",
     min: 0,
     max: 8,
     step: 1,
@@ -38,6 +42,7 @@ const controlsConfig = [
   {
     key: "sheep",
     label: "Sheep",
+    group: "Ecosystem",
     min: 100,
     max: 30000,
     step: 100,
@@ -47,6 +52,7 @@ const controlsConfig = [
   {
     key: "grassGrowth",
     label: "Grass Growth Speed",
+    group: "Ecosystem",
     min: 10,
     max: 100,
     step: 1,
@@ -56,6 +62,7 @@ const controlsConfig = [
   {
     key: "transparency",
     label: "Data Transparency",
+    group: "Data Integrity",
     min: 0,
     max: 100,
     step: 5,
@@ -64,8 +71,32 @@ const controlsConfig = [
   }
 ];
 
+const presets = [
+  {
+    name: "Balanced",
+    values: { humans: 12000, panels: 38000, energyDemand: 2900, cleaning: 3, sheep: 8400, grassGrowth: 58, transparency: 65 }
+  },
+  {
+    name: "Overgrazing",
+    values: { humans: 12000, panels: 32000, energyDemand: 2900, cleaning: 2, sheep: 23000, grassGrowth: 38, transparency: 55 }
+  },
+  {
+    name: "Energy Expansion",
+    values: { humans: 18000, panels: 90000, energyDemand: 5200, cleaning: 4, sheep: 9800, grassGrowth: 62, transparency: 70 }
+  },
+  {
+    name: "Low Cleaning",
+    values: { humans: 14000, panels: 48000, energyDemand: 3900, cleaning: 0, sheep: 9200, grassGrowth: 52, transparency: 50 }
+  },
+  {
+    name: "High Trust",
+    values: { humans: 15000, panels: 64000, energyDemand: 4300, cleaning: 3, sheep: 10500, grassGrowth: 68, transparency: 95 }
+  }
+];
+
 const state = Object.fromEntries(controlsConfig.map((control) => [control.key, control.value]));
 const controlsEl = document.querySelector("#controls");
+const presetsEl = document.querySelector("#presets");
 const ecosystemCanvas = document.querySelector("#ecosystemCanvas");
 const trendCanvas = document.querySelector("#trendCanvas");
 const barCanvas = document.querySelector("#barCanvas");
@@ -90,30 +121,68 @@ function formatNumber(value, digits = 0) {
 
 function makeControls() {
   controlsEl.innerHTML = "";
+  const groups = [...new Set(controlsConfig.map((control) => control.group))];
 
-  controlsConfig.forEach((control) => {
-    const wrapper = document.createElement("div");
-    wrapper.className = "control";
-    wrapper.innerHTML = `
-      <div class="control-top">
-        <label for="${control.key}">${control.label}</label>
-        <output id="${control.key}Output">${formatControlValue(control, control.value)}</output>
-      </div>
-      <input id="${control.key}" type="range" min="${control.min}" max="${control.max}" step="${control.step}" value="${control.value}">
-      <div class="range-row">
-        <span>${formatControlValue(control, control.min)}</span>
-        <span>${formatControlValue(control, control.max)}</span>
-      </div>
-    `;
+  groups.forEach((groupName) => {
+    const group = document.createElement("section");
+    group.className = "control-group";
+    group.innerHTML = `<h3>${groupName}</h3>`;
 
-    controlsEl.appendChild(wrapper);
+    controlsConfig
+      .filter((control) => control.group === groupName)
+      .forEach((control) => {
+        const wrapper = document.createElement("div");
+        wrapper.className = "control";
+        wrapper.innerHTML = `
+          <div class="control-top">
+            <label for="${control.key}">${control.label}</label>
+            <output id="${control.key}Output">${formatControlValue(control, control.value)}</output>
+          </div>
+          <input id="${control.key}" type="range" min="${control.min}" max="${control.max}" step="${control.step}" value="${control.value}">
+          <div class="range-row">
+            <span>${formatControlValue(control, control.min)}</span>
+            <span>${formatControlValue(control, control.max)}</span>
+          </div>
+        `;
 
-    wrapper.querySelector("input").addEventListener("input", (event) => {
-      state[control.key] = Number(event.target.value);
-      wrapper.querySelector("output").textContent = formatControlValue(control, state[control.key]);
-      update();
+        group.appendChild(wrapper);
+
+        wrapper.querySelector("input").addEventListener("input", (event) => {
+          state[control.key] = Number(event.target.value);
+          wrapper.querySelector("output").textContent = formatControlValue(control, state[control.key]);
+          update();
+        });
+      });
+
+    controlsEl.appendChild(group);
+  });
+}
+
+function makePresets() {
+  presetsEl.innerHTML = presets.map((preset) => `
+    <button type="button" data-preset="${preset.name}">${preset.name}</button>
+  `).join("");
+
+  presetsEl.querySelectorAll("button").forEach((button) => {
+    button.addEventListener("click", () => {
+      const preset = presets.find((item) => item.name === button.dataset.preset);
+      applyValues(preset.values);
     });
   });
+}
+
+function applyValues(values) {
+  Object.entries(values).forEach(([key, value]) => {
+    state[key] = value;
+    const control = controlsConfig.find((item) => item.key === key);
+    const input = document.querySelector(`#${key}`);
+    const output = document.querySelector(`#${key}Output`);
+    if (input && output && control) {
+      input.value = value;
+      output.textContent = formatControlValue(control, value);
+    }
+  });
+  update();
 }
 
 function formatControlValue(control, value) {
@@ -146,6 +215,13 @@ function calculateModel() {
   const grazingScore = 18 * sheepBalance * clamp(foodFit, 0, 1);
   const resourceScore = 10 * clamp(1 - Math.abs(state.cleaning - 3) / 5, 0, 1);
   const transparencyScore = 7 * (state.transparency / 100);
+  const scoreComponents = [
+    ["Ecology", ecologicalScore, 35],
+    ["Clean Energy", cleanEnergyScore, 30],
+    ["Grazing Balance", grazingScore, 18],
+    ["Resource Efficiency", resourceScore, 10],
+    ["Transparency", transparencyScore, 7]
+  ];
   const impactScore = clamp(ecologicalScore + cleanEnergyScore + grazingScore + resourceScore + transparencyScore, 0, 100);
   const confidenceScore = clamp(38 + state.transparency * 0.42 + (state.cleaning > 0 ? 7 : 0), 0, 100);
 
@@ -169,6 +245,7 @@ function calculateModel() {
     foodFit,
     impactScore,
     confidenceScore,
+    scoreComponents,
     systemState,
     dustLoss
   };
@@ -201,10 +278,11 @@ function simulateTrend(model) {
 
 function getBarData(model) {
   return [
-    ["Energy", clamp(model.monthlyEnergy / state.energyDemand, 0, 1.35), "#157a8c"],
-    ["CO2", clamp(model.co2Avoided / 2200, 0, 1.35), "#2e7d5b"],
-    ["Grazing", clamp(model.sheepBalance, 0, 1.35), "#bd7b2f"],
-    ["Human Fit", clamp((model.humanEnergyFit + model.foodFit) / 2, 0, 1.35), "#775d9e"]
+    ["Energy Sufficiency", clamp(model.monthlyEnergy / state.energyDemand, 0, 1.35), "#157a8c", "Energy"],
+    ["Carbon Impact", clamp(model.co2Avoided / 2200, 0, 1.35), "#2e7d5b", "Carbon"],
+    ["Grazing Balance", clamp(model.sheepBalance, 0, 1.35), "#bd7b2f", "Grazing"],
+    ["Human Support", clamp((model.humanEnergyFit + model.foodFit) / 2, 0, 1.35), "#775d9e", "Human"],
+    ["Data Confidence", clamp(model.confidenceScore / 100, 0, 1.35), "#596c6d", "Confidence"]
   ];
 }
 
@@ -263,7 +341,7 @@ function buildSummary(model, trend) {
     ? `The modeled sheep index increases over the same period, implying that available grass can support gradual livestock expansion.`
     : `The modeled sheep index declines over the same period, implying that the land cannot comfortably support the selected livestock level.`;
 
-  const barText = `The bar chart's strongest dimension is ${strongestBar[0]} at ${formatNumber(strongestBar[1] * 100, 0)}% of its benchmark, while the weakest dimension is ${weakestBar[0]} at ${formatNumber(weakestBar[1] * 100, 0)}%. This comparison identifies where the system is performing well and where the impact score is being constrained.`;
+  const barText = `The benchmark comparison shows ${strongestBar[0]} as the strongest dimension at ${formatNumber(strongestBar[1] * 100, 0)}% of target, while ${weakestBar[0]} is the weakest dimension at ${formatNumber(weakestBar[1] * 100, 0)}%. This identifies which part of the system is currently supporting the impact score and which part is constraining it.`;
 
   const grazingText = overgrazed
     ? `Sheep numbers exceed the estimated carrying capacity by ${formatNumber(Math.abs(sheepGap))} animals. This creates overgrazing risk, reduces grass biomass, and can expose more soil surface.`
@@ -310,6 +388,7 @@ function updateSummary(model, trend) {
 
 function updateMetrics(model) {
   document.querySelector("#impactScore").textContent = formatNumber(model.impactScore, 0);
+  document.querySelector("#scoreStatus").textContent = `${model.systemState} scenario`;
   document.querySelector("#systemState").textContent = model.systemState;
   document.querySelector("#vegPercent").textContent = `${formatNumber(model.vegetation, 0)}%`;
   document.querySelector("#capacityText").textContent = `${formatNumber(model.sheepCapacity)} sheep`;
@@ -325,6 +404,35 @@ function updateMetrics(model) {
 
   document.querySelector("#metrics").innerHTML = metricItems.map(([label, value, note]) => `
     <div class="metric">
+      <span>${label}</span>
+      <strong>${value}</strong>
+      <small>${note}</small>
+    </div>
+  `).join("");
+}
+
+function updateScoreBreakdown(model) {
+  document.querySelector("#scoreBreakdown").innerHTML = model.scoreComponents.map(([label, value, max]) => `
+    <div class="score-row">
+      <span>${label}</span>
+      <strong>${formatNumber(value, 1)} / ${max}</strong>
+      <div class="score-track"><i style="width: ${clamp((value / max) * 100, 0, 100)}%"></i></div>
+    </div>
+  `).join("");
+}
+
+function updateVerification(model) {
+  const hashStatus = state.transparency >= 85 ? "Ready for integrity proof" : "Simulation-only prototype";
+  const evidenceStatus = state.transparency >= 70 ? "Moderate evidence quality" : "Low evidence completeness";
+  const verificationItems = [
+    ["Data Transparency", `${formatNumber(state.transparency)}%`, "User-controlled proxy for data completeness and source clarity."],
+    ["Model Confidence", `${formatNumber(model.confidenceScore)} / 100`, "Confidence estimate based on transparency and maintenance observability."],
+    ["Evidence Status", evidenceStatus, "Current version uses modeled estimates, not field sensor measurements."],
+    ["Integrity Proof", hashStatus, "Future version can publish dataset hash, timestamp, and transaction reference."]
+  ];
+
+  document.querySelector("#verificationGrid").innerHTML = verificationItems.map(([label, value, note]) => `
+    <div class="verification-item">
       <span>${label}</span>
       <strong>${value}</strong>
       <small>${note}</small>
@@ -377,11 +485,50 @@ function drawEcosystem(model) {
   ecoCtx.closePath();
   ecoCtx.fill();
 
+  if (model.vegetation < 30) {
+    drawDryPatches(width, height);
+  }
+  if (model.vegetation > 62) {
+    drawOasisRibbon(width, height, greenAlpha);
+  }
+
   drawSun(width, height);
   drawPanels(width, height, model);
   drawGrass(width, height, model);
   drawSheep(width, height, model);
   drawPeople(width, height, model);
+}
+
+function drawDryPatches(width, height) {
+  ecoCtx.strokeStyle = "rgba(117, 84, 43, 0.45)";
+  ecoCtx.lineWidth = 1.4;
+  for (let index = 0; index < 12; index += 1) {
+    const x = seededNoise(index + 211) * width;
+    const y = height * (0.67 + seededNoise(index + 233) * 0.24);
+    const size = 10 + seededNoise(index + 277) * 18;
+    ecoCtx.beginPath();
+    ecoCtx.moveTo(x - size, y);
+    ecoCtx.lineTo(x, y + size * 0.25);
+    ecoCtx.lineTo(x + size, y - size * 0.1);
+    ecoCtx.moveTo(x, y + size * 0.25);
+    ecoCtx.lineTo(x - size * 0.25, y + size * 0.9);
+    ecoCtx.stroke();
+  }
+}
+
+function drawOasisRibbon(width, height, strength) {
+  const gradient = ecoCtx.createLinearGradient(0, height * 0.62, width, height * 0.82);
+  gradient.addColorStop(0, `rgba(72, 145, 129, ${0.18 + strength * 0.12})`);
+  gradient.addColorStop(1, `rgba(68, 125, 92, ${0.2 + strength * 0.16})`);
+  ecoCtx.fillStyle = gradient;
+  ecoCtx.beginPath();
+  ecoCtx.moveTo(width * 0.08, height * 0.79);
+  ecoCtx.bezierCurveTo(width * 0.28, height * 0.7, width * 0.48, height * 0.87, width * 0.72, height * 0.72);
+  ecoCtx.bezierCurveTo(width * 0.88, height * 0.63, width * 0.95, height * 0.72, width, height * 0.66);
+  ecoCtx.lineTo(width, height * 0.74);
+  ecoCtx.bezierCurveTo(width * 0.72, height * 0.84, width * 0.43, height * 0.91, width * 0.05, height * 0.85);
+  ecoCtx.closePath();
+  ecoCtx.fill();
 }
 
 function drawSun(width, height) {
@@ -487,6 +634,10 @@ function drawPeople(width, height, model) {
   const houseY = height * 0.62;
   const houseScale = clamp(state.humans / 22000, 0.7, 1.35);
 
+  ecoCtx.save();
+  ecoCtx.shadowColor = "rgba(50, 40, 20, 0.14)";
+  ecoCtx.shadowBlur = 10;
+  ecoCtx.shadowOffsetY = 5;
   ecoCtx.fillStyle = model.humanEnergyFit >= 1 ? "#f4f2e8" : "#f2dcc6";
   ecoCtx.fillRect(houseX, houseY, 72 * houseScale, 54 * houseScale);
   ecoCtx.fillStyle = "#b95f45";
@@ -496,30 +647,85 @@ function drawPeople(width, height, model) {
   ecoCtx.lineTo(houseX + 80 * houseScale, houseY);
   ecoCtx.closePath();
   ecoCtx.fill();
+  ecoCtx.restore();
 
-  const peopleIcons = Math.round(clamp(state.humans / 5000, 1, 9));
-  for (let index = 0; index < peopleIcons; index += 1) {
-    const x = houseX - 42 + index * 12;
-    const y = houseY + 82 + (index % 2) * 8;
-    ecoCtx.fillStyle = "#26544a";
-    ecoCtx.beginPath();
-    ecoCtx.arc(x, y, 4, 0, Math.PI * 2);
-    ecoCtx.fill();
-    ecoCtx.fillRect(x - 2, y + 4, 4, 13);
+  const farmerCount = Math.round(clamp(state.humans / 9000, 1, 5));
+  for (let index = 0; index < farmerCount; index += 1) {
+    const x = houseX - 64 + index * 26;
+    const y = houseY + 92 + (index % 2) * 7;
+    drawFarmer(x, y, 0.82 + (index % 2) * 0.08, index);
   }
 }
 
-function drawTrendChart(model) {
-  const trend = simulateTrend(model);
+function drawFarmer(x, y, scale, index) {
+  ecoCtx.save();
+  ecoCtx.translate(x, y);
+  ecoCtx.scale(scale, scale);
+
+  ecoCtx.strokeStyle = "rgba(42, 54, 45, 0.28)";
+  ecoCtx.lineWidth = 2;
+  ecoCtx.beginPath();
+  ecoCtx.moveTo(-10, 20);
+  ecoCtx.lineTo(14, 20);
+  ecoCtx.stroke();
+
+  ecoCtx.fillStyle = "#d9a05c";
+  ecoCtx.fillRect(-7, -24, 14, 8);
+  ecoCtx.beginPath();
+  ecoCtx.ellipse(0, -24, 15, 4, 0, 0, Math.PI * 2);
+  ecoCtx.fill();
+
+  ecoCtx.fillStyle = "#9b6a3a";
+  ecoCtx.beginPath();
+  ecoCtx.arc(0, -14, 6, 0, Math.PI * 2);
+  ecoCtx.fill();
+
+  ecoCtx.fillStyle = index % 2 === 0 ? "#2f6f5d" : "#6c7d3c";
+  ecoCtx.beginPath();
+  ecoCtx.roundRect(-7, -7, 14, 22, 4);
+  ecoCtx.fill();
+
+  ecoCtx.strokeStyle = "#263a34";
+  ecoCtx.lineWidth = 2;
+  ecoCtx.beginPath();
+  ecoCtx.moveTo(-5, 14);
+  ecoCtx.lineTo(-9, 25);
+  ecoCtx.moveTo(5, 14);
+  ecoCtx.lineTo(9, 25);
+  ecoCtx.stroke();
+
+  ecoCtx.strokeStyle = "#5f4d31";
+  ecoCtx.beginPath();
+  ecoCtx.moveTo(8, -2);
+  ecoCtx.lineTo(18, 10);
+  ecoCtx.moveTo(18, -12);
+  ecoCtx.lineTo(18, 24);
+  ecoCtx.stroke();
+
+  ecoCtx.strokeStyle = "#a98c55";
+  ecoCtx.lineWidth = 1.3;
+  ecoCtx.beginPath();
+  ecoCtx.moveTo(14, -12);
+  ecoCtx.lineTo(22, -12);
+  ecoCtx.moveTo(15, -8);
+  ecoCtx.lineTo(22, -8);
+  ecoCtx.stroke();
+
+  ecoCtx.restore();
+}
+
+function drawTrendChart(model, trend = simulateTrend(model)) {
   const { width, height } = resizeCanvasToDisplaySize(trendCanvas);
   drawChartFrame(trendCtx, width, height);
 
   const padding = { top: 28, right: 28, bottom: 36, left: 52 };
-  drawLineSeries(trendCtx, trend.map((item) => item.vegetation), width, height, padding, "#5a9a4e", "Vegetation %", 100);
-  drawLineSeries(trendCtx, trend.map((item) => clamp(item.sheep / 300, 0, 100)), width, height, padding, "#157a8c", "Sheep index", 100);
+  drawLineSeries(trendCtx, trend.map((item) => item.vegetation), width, height, padding, "#5a9a4e", "Vegetation Cover", 100);
+  drawLineSeries(trendCtx, trend.map((item) => clamp(item.sheep / 300, 0, 100)), width, height, padding, "#157a8c", "Sheep Pressure", 100);
+  drawLineSeries(trendCtx, trend.map((item) => clamp((item.vegetation * 185) / 300, 0, 100)), width, height, padding, "#bd7b2f", "Carrying Capacity", 100);
   drawLegend(trendCtx, [
-    ["Vegetation %", "#5a9a4e"],
-    ["Sheep index", "#157a8c"]
+    ["Vegetation", "#5a9a4e"],
+    ["Sheep Pressure", "#157a8c"],
+    ["Capacity", "#bd7b2f"]
   ], width, padding.top);
 }
 
@@ -534,8 +740,21 @@ function drawBarChart(model) {
   const chartH = height - padding.top - padding.bottom;
   const gap = 18;
   const barW = (chartW - gap * (bars.length - 1)) / bars.length;
+  const benchmarkY = padding.top + chartH - (1 / 1.2) * chartH;
 
-  bars.forEach(([label, value, color], index) => {
+  barCtx.strokeStyle = "rgba(177, 76, 67, 0.55)";
+  barCtx.setLineDash([5, 5]);
+  barCtx.beginPath();
+  barCtx.moveTo(padding.left, benchmarkY);
+  barCtx.lineTo(width - padding.right, benchmarkY);
+  barCtx.stroke();
+  barCtx.setLineDash([]);
+  barCtx.fillStyle = "#b14c43";
+  barCtx.font = "800 11px system-ui";
+  barCtx.textAlign = "right";
+  barCtx.fillText("100% target", width - padding.right, benchmarkY - 7);
+
+  bars.forEach(([label, value, color, shortLabel], index) => {
     const barH = clamp(value, 0, 1.2) / 1.2 * chartH;
     const x = padding.left + index * (barW + gap);
     const y = padding.top + chartH - barH;
@@ -547,7 +766,7 @@ function drawBarChart(model) {
     barCtx.textAlign = "center";
     barCtx.fillText(`${Math.round(value * 100)}%`, x + barW / 2, y - 8);
     barCtx.fillStyle = "#60706c";
-    barCtx.fillText(label, x + barW / 2, height - 20);
+    barCtx.fillText(shortLabel || label, x + barW / 2, height - 20);
   });
 }
 
@@ -593,14 +812,11 @@ function drawLineSeries(ctx, values, width, height, padding, color, label, maxVa
     ctx.fill();
   });
 
-  ctx.fillStyle = "#60706c";
-  ctx.font = "700 11px system-ui";
-  ctx.textAlign = "left";
-  ctx.fillText(label, padding.left, padding.top - 10);
+  void label;
 }
 
 function drawLegend(ctx, items, width, y) {
-  let x = width - 230;
+  let x = Math.max(58, width - 360);
   items.forEach(([label, color]) => {
     ctx.fillStyle = color;
     ctx.fillRect(x, y - 12, 12, 12);
@@ -615,24 +831,20 @@ function update() {
   const model = calculateModel();
   const trend = simulateTrend(model);
   updateMetrics(model);
+  updateScoreBreakdown(model);
+  updateVerification(model);
   updateSummary(model, trend);
   drawEcosystem(model);
-  drawTrendChart(model);
+  drawTrendChart(model, trend);
   drawBarChart(model);
 }
 
 document.querySelector("#resetBtn").addEventListener("click", () => {
-  controlsConfig.forEach((control) => {
-    state[control.key] = control.value;
-    const input = document.querySelector(`#${control.key}`);
-    const output = document.querySelector(`#${control.key}Output`);
-    input.value = control.value;
-    output.textContent = formatControlValue(control, control.value);
-  });
-  update();
+  applyValues(Object.fromEntries(controlsConfig.map((control) => [control.key, control.value])));
 });
 
 window.addEventListener("resize", update);
 
 makeControls();
+makePresets();
 update();
