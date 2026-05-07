@@ -36,11 +36,11 @@ jobs:
 
       - name: 上传并发布到测试服务器
         run: |
-          ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -p 22 root@144.24.60.0 \
+          ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -p 22 ubuntu@144.24.60.0 \
             'cat > /tmp/solar-sheep-site.tar.gz' < "$RUNNER_TEMP/site.tar.gz"
-          ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -p 22 root@144.24.60.0 '
-            mkdir -p /var/admin/solarSheepWeb && \
-            find /var/admin/solarSheepWeb -mindepth 1 -maxdepth 1 -exec rm -rf {} + && \
-            tar xzf /tmp/solar-sheep-site.tar.gz -C /var/admin/solarSheepWeb && \
+          ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -p 22 ubuntu@144.24.60.0 '
+            sudo mkdir -p /var/admin/solarSheepWeb && \
+            sudo find /var/admin/solarSheepWeb -mindepth 1 -maxdepth 1 -exec rm -rf {} + && \
+            sudo tar xzf /tmp/solar-sheep-site.tar.gz -C /var/admin/solarSheepWeb && \
             rm -f /tmp/solar-sheep-site.tar.gz
           '
