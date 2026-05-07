@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Solar Sheep Impact Lab</title>
+    <link rel="stylesheet" href="styles.css">
+  </head>
+  <body>
+    <main class="app-shell">
+      <header class="topbar">
+        <div>
+          <p class="eyebrow">Solar Sheep Impact Lab</p>
+          <h1>Desert-to-Oasis Impact Simulator</h1>
+        </div>
+        <div class="score-card" aria-label="Impact score">
+          <span>Impact Score</span>
+          <strong id="impactScore">0</strong>
+        </div>
+      </header>
+
+      <section class="workspace" aria-label="Interactive solar grazing simulator">
+        <aside class="panel controls-panel" aria-label="Adjust system components">
+          <div class="panel-title">
+            <h2>Components</h2>
+            <button id="resetBtn" type="button">Reset</button>
+          </div>
+          <div id="controls" class="controls"></div>
+        </aside>
+
+        <section class="sim-stage" aria-label="Live ecosystem visualization">
+          <canvas id="ecosystemCanvas" width="1100" height="680"></canvas>
+          <div class="stage-overlay">
+            <div>
+              <span class="label">System State</span>
+              <strong id="systemState">Balanced</strong>
+            </div>
+            <div>
+              <span class="label">Vegetation</span>
+              <strong id="vegPercent">0%</strong>
+            </div>
+            <div>
+              <span class="label">Carrying Capacity</span>
+              <strong id="capacityText">0 sheep</strong>
+            </div>
+          </div>
+        </section>
+
+        <aside class="panel metrics-panel" aria-label="Calculated impact metrics">
+          <h2>Live Metrics</h2>
+          <div id="metrics" class="metrics"></div>
+          <div class="formula-box">
+            <h3>Score Model</h3>
+            <p>Impact = Ecology + Clean Energy + Grazing Balance + Resource Efficiency + Transparency</p>
+          </div>
+        </aside>
+      </section>
+
+      <section class="data-board" aria-label="Impact data charts">
+        <article class="chart-panel">
+          <div class="chart-header">
+            <h2>12-Month Ecosystem Trend</h2>
+            <span id="trendNote">Simulation</span>
+          </div>
+          <canvas id="trendCanvas" width="900" height="320"></canvas>
+        </article>
+        <article class="chart-panel">
+          <div class="chart-header">
+            <h2>Energy, Carbon, Grazing</h2>
+            <span>Current month</span>
+          </div>
+          <canvas id="barCanvas" width="640" height="320"></canvas>
+        </article>
+      </section>
+    </main>
+
+    <script src="app.js"></script>
+  </body>
+</html>
