@@ -199,6 +199,115 @@ function simulateTrend(model) {
   return months;
 }
 
+function getBarData(model) {
+  return [
+    ["Energy", clamp(model.monthlyEnergy / state.energyDemand, 0, 1.35), "#157a8c"],
+    ["CO2", clamp(model.co2Avoided / 2200, 0, 1.35), "#2e7d5b"],
+    ["Grazing", clamp(model.sheepBalance, 0, 1.35), "#bd7b2f"],
+    ["Human Fit", clamp((model.humanEnergyFit + model.foodFit) / 2, 0, 1.35), "#775d9e"]
+  ];
+}
+
+function analyzeTrend(trend) {
+  const first = trend[0];
+  const last = trend[trend.length - 1];
+  const vegetationChange = last.vegetation - first.vegetation;
+  const sheepChange = last.sheep - first.sheep;
+  const direction = vegetationChange >= 2
+    ? "upward"
+    : vegetationChange <= -2
+      ? "downward"
+      : "stable";
+
+  return {
+    first,
+    last,
+    vegetationChange,
+    sheepChange,
+    direction
+  };
+}
+
+function buildSummary(model, trend) {
+  const trendAnalysis = analyzeTrend(trend);
+  const bars = getBarData(model);
+  const sortedBars = [...bars].sort((a, b) => b[1] - a[1]);
+  const strongestBar = sortedBars[0];
+  const weakestBar = sortedBars[sortedBars.length - 1];
+  const sheepGap = state.sheep - model.sheepCapacity;
+  const sheepGapPercent = sheepGap / Math.max(model.sheepCapacity, 1);
+  const energyGap = model.monthlyEnergy - state.energyDemand;
+  const energyGapPercent = energyGap / Math.max(state.energyDemand, 1);
+  const overgrazed = sheepGapPercent > 0.15;
+  const undergrazed = sheepGapPercent < -0.45;
+  const energyShortage = energyGapPercent < -0.1;
+  const lowVegetation = model.vegetation < 28;
+  const strongVegetation = model.vegetation >= 62;
+
+  let lead = "";
+  if (model.systemState === "Regenerating") {
+    lead = `The current configuration indicates a regenerative solar-grazing scenario. Vegetation cover is estimated at ${formatNumber(model.vegetation, 1)}%, monthly clean-energy output reaches ${formatNumber(model.monthlyEnergy)} MWh, and sheep demand remains broadly compatible with the modeled grass carrying capacity.`;
+  } else if (model.systemState === "Stressed") {
+    lead = `The current configuration indicates ecological or resource stress. The primary pressure is ${overgrazed ? "excessive sheep demand relative to grass capacity" : energyShortage ? "clean-energy demand exceeding solar output" : lowVegetation ? "limited vegetation recovery" : "an imbalance between human demand and ecosystem capacity"}. Without adjustment, the desert-to-oasis transition becomes less stable.`;
+  } else {
+    lead = `The current configuration is broadly balanced. The model shows usable clean-energy production, moderate vegetation recovery, and manageable grazing pressure, but the system remains sensitive to changes in livestock numbers, grass growth, and panel maintenance.`;
+  }
+
+  const trendText = trendAnalysis.direction === "upward"
+    ? `The line chart projects vegetation rising from ${formatNumber(trendAnalysis.first.vegetation, 1)}% in Month 1 to ${formatNumber(trendAnalysis.last.vegetation, 1)}% in Month 12, a gain of ${formatNumber(trendAnalysis.vegetationChange, 1)} percentage points. This suggests that grass recovery can outpace grazing pressure under the selected settings.`
+    : trendAnalysis.direction === "downward"
+      ? `The line chart projects vegetation falling from ${formatNumber(trendAnalysis.first.vegetation, 1)}% in Month 1 to ${formatNumber(trendAnalysis.last.vegetation, 1)}% in Month 12, a loss of ${formatNumber(Math.abs(trendAnalysis.vegetationChange), 1)} percentage points. This is a warning signal: grazing and maintenance pressure are overpowering grass recovery.`
+      : `The line chart shows a mostly stable vegetation trajectory, changing by only ${formatNumber(Math.abs(trendAnalysis.vegetationChange), 1)} percentage points across 12 months. This indicates short-term balance, but not necessarily long-term ecological expansion.`;
+
+  const sheepTrendText = trendAnalysis.sheepChange >= 0
+    ? `The modeled sheep index increases over the same period, implying that available grass can support gradual livestock expansion.`
+    : `The modeled sheep index declines over the same period, implying that the land cannot comfortably support the selected livestock level.`;
+
+  const barText = `The bar chart's strongest dimension is ${strongestBar[0]} at ${formatNumber(strongestBar[1] * 100, 0)}% of its benchmark, while the weakest dimension is ${weakestBar[0]} at ${formatNumber(weakestBar[1] * 100, 0)}%. This comparison identifies where the system is performing well and where the impact score is being constrained.`;
+
+  const grazingText = overgrazed
+    ? `Sheep numbers exceed the estimated carrying capacity by ${formatNumber(Math.abs(sheepGap))} animals. This creates overgrazing risk, reduces grass biomass, and can expose more soil surface.`
+    : undergrazed
+      ? `Sheep numbers are well below the estimated carrying capacity. The grass layer is protected, but the grazing function is underused.`
+      : `Sheep numbers are close to the estimated carrying capacity of ${formatNumber(model.sheepCapacity)} animals, which keeps grazing pressure within a manageable range.`;
+
+  let recommendationText = "Maintain the current balance and use real NDVI, weather, and solar-output data to calibrate the simulation.";
+  if (overgrazed) {
+    recommendationText = "Reduce sheep numbers, increase grass-growth capacity, or add rotational grazing before expanding livestock.";
+  } else if (energyShortage) {
+    recommendationText = "Increase panel capacity, improve cleaning efficiency, or lower energy demand to close the clean-energy gap.";
+  } else if (lowVegetation) {
+    recommendationText = "Prioritize vegetation recovery before increasing livestock pressure.";
+  } else if (strongVegetation && undergrazed) {
+    recommendationText = "The site may support more sheep, but expansion should be gradual and monitored with vegetation data.";
+  }
+
+  return {
+    lead,
+    status: model.systemState,
+    items: [
+      ["Line Chart Analysis", `${trendText} ${sheepTrendText}`],
+      ["Bar Chart Analysis", `${barText} Estimated avoided emissions are ${formatNumber(model.co2Avoided)} tons of CO2 this month.`],
+      ["Grazing & Vegetation", grazingText],
+      ["Recommended Action", recommendationText]
+    ]
+  };
+}
+
+function updateSummary(model, trend) {
+  const summary = buildSummary(model, trend);
+  const badge = document.querySelector("#summaryBadge");
+  badge.textContent = summary.status;
+  badge.className = summary.status.toLowerCase();
+  document.querySelector("#summaryLead").textContent = summary.lead;
+  document.querySelector("#summaryGrid").innerHTML = summary.items.map(([title, text]) => `
+    <article class="summary-item">
+      <span>${title}</span>
+      <p>${text}</p>
+    </article>
+  `).join("");
+}
+
 function updateMetrics(model) {
   document.querySelector("#impactScore").textContent = formatNumber(model.impactScore, 0);
   document.querySelector("#systemState").textContent = model.systemState;
@@ -418,12 +527,7 @@ function drawBarChart(model) {
   const { width, height } = resizeCanvasToDisplaySize(barCanvas);
   drawChartFrame(barCtx, width, height);
 
-  const bars = [
-    ["Energy", clamp(model.monthlyEnergy / state.energyDemand, 0, 1.35), "#157a8c"],
-    ["CO2", clamp(model.co2Avoided / 2200, 0, 1.35), "#2e7d5b"],
-    ["Grazing", clamp(model.sheepBalance, 0, 1.35), "#bd7b2f"],
-    ["Human Fit", clamp((model.humanEnergyFit + model.foodFit) / 2, 0, 1.35), "#775d9e"]
-  ];
+  const bars = getBarData(model);
 
   const padding = { top: 28, right: 24, bottom: 48, left: 38 };
   const chartW = width - padding.left - padding.right;
@@ -509,7 +613,9 @@ function drawLegend(ctx, items, width, y) {
 
 function update() {
   const model = calculateModel();
+  const trend = simulateTrend(model);
   updateMetrics(model);
+  updateSummary(model, trend);
   drawEcosystem(model);
   drawTrendChart(model);
   drawBarChart(model);
