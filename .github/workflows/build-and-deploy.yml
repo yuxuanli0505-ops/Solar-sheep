@@ -1,0 +1,34 @@
+name: build-and-deploy
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - "index.html"
+      - "app.js"
+      - "styles.css"
+      - ".github/workflows/build-and-deploy.yml"
+  workflow_dispatch:
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 检出代码
+        uses: actions/checkout@v4
+
+      - name: 部署到测试服务器
+        uses: up9cloud/action-rsync@master
+        env:
+          USER: root
+          HOST: 144.24.60.0
+          KEY: ${{ secrets.USAARMLOGIN_SSH_KEY }}
+          ARGS: >-
+            -avz --delete --exclude='.git/' --exclude='.github/'
+            --exclude='README.md' --exclude='.DS_Store'
+          SSH_ARGS: "-p 22 -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no"
+          SOURCE: ./
+          TARGET: /var/admin/solarSheepWeb/
+          VERBOSE: true
