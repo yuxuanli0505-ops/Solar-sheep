@@ -6,7 +6,7 @@ const controlsConfig = [
     min: 500,
     max: 50000,
     step: 500,
-    value: 12000,
+    value: 9000,
     unit: "people"
   },
   {
@@ -16,7 +16,7 @@ const controlsConfig = [
     min: 1000,
     max: 120000,
     step: 1000,
-    value: 38000,
+    value: 52000,
     unit: "panels"
   },
   {
@@ -26,7 +26,7 @@ const controlsConfig = [
     min: 100,
     max: 9000,
     step: 100,
-    value: 2900,
+    value: 3200,
     unit: "MWh/month"
   },
   {
@@ -46,7 +46,7 @@ const controlsConfig = [
     min: 100,
     max: 30000,
     step: 100,
-    value: 8400,
+    value: 7000,
     unit: "sheep"
   },
   {
@@ -56,7 +56,7 @@ const controlsConfig = [
     min: 10,
     max: 100,
     step: 1,
-    value: 58,
+    value: 75,
     unit: "%"
   },
   {
@@ -66,30 +66,30 @@ const controlsConfig = [
     min: 0,
     max: 100,
     step: 5,
-    value: 65,
+    value: 75,
     unit: "%"
   }
 ];
 
 const presets = [
   {
-    name: "Balanced",
-    values: { humans: 12000, panels: 38000, energyDemand: 2900, cleaning: 3, sheep: 8400, grassGrowth: 58, transparency: 65 }
+    name: "Scenario 1: Balanced",
+    values: { humans: 9000, panels: 52000, energyDemand: 3200, cleaning: 3, sheep: 7000, grassGrowth: 75, transparency: 75 }
   },
   {
-    name: "Overgrazing",
+    name: "Scenario 2: Overgrazing",
     values: { humans: 12000, panels: 32000, energyDemand: 2900, cleaning: 2, sheep: 23000, grassGrowth: 38, transparency: 55 }
   },
   {
-    name: "Energy Expansion",
+    name: "Scenario 3: Solar Expansion",
     values: { humans: 18000, panels: 90000, energyDemand: 5200, cleaning: 4, sheep: 9800, grassGrowth: 62, transparency: 70 }
   },
   {
-    name: "Low Cleaning",
+    name: "Scenario 4: Low Maintenance",
     values: { humans: 14000, panels: 48000, energyDemand: 3900, cleaning: 0, sheep: 9200, grassGrowth: 52, transparency: 50 }
   },
   {
-    name: "High Trust",
+    name: "Scenario 5: High Transparency",
     values: { humans: 15000, panels: 64000, energyDemand: 4300, cleaning: 3, sheep: 10500, grassGrowth: 68, transparency: 95 }
   }
 ];
@@ -226,10 +226,10 @@ function calculateModel() {
   const confidenceScore = clamp(38 + state.transparency * 0.42 + (state.cleaning > 0 ? 7 : 0), 0, 100);
 
   let systemState = "Balanced";
-  if (vegetation < 28 || sheepBalance < 0.48 || humanEnergyFit < 0.7) {
+  if (vegetation < 28 || sheepBalance < 0.48 || humanEnergyFit < 0.7 || impactScore < 55) {
     systemState = "Stressed";
   }
-  if (vegetation > 62 && sheepBalance > 0.7 && humanEnergyFit >= 0.95) {
+  if (vegetation > 62 && sheepBalance > 0.7 && humanEnergyFit >= 0.95 && impactScore >= 78) {
     systemState = "Regenerating";
   }
 
@@ -253,22 +253,29 @@ function calculateModel() {
 
 function simulateTrend(model) {
   const months = [];
-  let vegetation = clamp(model.vegetation * 0.76, 4, 84);
+  let vegetation = clamp(model.vegetation * 0.92, 4, 88);
   let sheep = state.sheep;
 
   for (let index = 0; index < 12; index += 1) {
     const shade = clamp(state.panels / 100000, 0, 1) * 2.1;
-    const growth = (state.grassGrowth / 100) * 5.2 + shade;
-    const consumption = sheep / 7800;
+    const capacity = Math.max(vegetation * 185, 1);
+    const pressureRatio = sheep / capacity;
+    const growth = (state.grassGrowth / 100) * 4.4 + shade;
+    const consumption = Math.max(0, pressureRatio - 0.75) * 4.8 + sheep / 18000;
+    const overgrazingDrag = Math.max(0, pressureRatio - 1) * 8;
     const cleaningDrag = Math.max(0, state.cleaning - 5) * 0.55;
-    vegetation = clamp(vegetation + growth - consumption - cleaningDrag, 2, 96);
-    const capacity = vegetation * 185;
+    vegetation = clamp(vegetation + growth - consumption - overgrazingDrag - cleaningDrag, 2, 96);
+    const nextCapacity = vegetation * 185;
     sheep += (capacity - sheep) * 0.055;
+    if (pressureRatio > 1.2) {
+      sheep -= sheep * 0.025;
+    }
 
     months.push({
       month: `M${index + 1}`,
       vegetation,
       sheep,
+      capacity: nextCapacity,
       energy: model.monthlyEnergy * (0.92 + index * 0.006)
     });
   }
@@ -321,6 +328,16 @@ function buildSummary(model, trend) {
   const energyShortage = energyGapPercent < -0.1;
   const lowVegetation = model.vegetation < 28;
   const strongVegetation = model.vegetation >= 62;
+  const riskLevel = overgrazed || lowVegetation || energyShortage
+    ? "High ecological pressure"
+    : model.systemState === "Regenerating"
+      ? "Low transition risk"
+      : "Moderate system sensitivity";
+  const confidenceLevel = model.confidenceScore >= 82
+    ? "High"
+    : model.confidenceScore >= 65
+      ? "Medium"
+      : "Low";
 
   let lead = "";
   if (model.systemState === "Regenerating") {
@@ -364,6 +381,7 @@ function buildSummary(model, trend) {
     lead,
     status: model.systemState,
     items: [
+      ["Risk & Confidence", `Risk Level: ${riskLevel}. Confidence Level: ${confidenceLevel}, based on a data transparency setting of ${formatNumber(state.transparency)}% and a model confidence score of ${formatNumber(model.confidenceScore)} / 100.`],
       ["Line Chart Analysis", `${trendText} ${sheepTrendText}`],
       ["Bar Chart Analysis", `${barText} Estimated avoided emissions are ${formatNumber(model.co2Avoided)} tons of CO2 this month.`],
       ["Grazing & Vegetation", grazingText],
@@ -422,13 +440,19 @@ function updateScoreBreakdown(model) {
 }
 
 function updateVerification(model) {
-  const hashStatus = state.transparency >= 85 ? "Ready for integrity proof" : "Simulation-only prototype";
-  const evidenceStatus = state.transparency >= 70 ? "Moderate evidence quality" : "Low evidence completeness";
+  const hashStatus = state.transparency >= 85 ? "Ready for demo hash" : "Demo not generated";
+  const evidenceStatus = state.transparency >= 85
+    ? "High verification readiness"
+    : state.transparency >= 70
+      ? "Medium verification readiness"
+      : "Low verification readiness";
   const verificationItems = [
     ["Data Transparency", `${formatNumber(state.transparency)}%`, "User-controlled proxy for data completeness and source clarity."],
     ["Model Confidence", `${formatNumber(model.confidenceScore)} / 100`, "Confidence estimate based on transparency and maintenance observability."],
-    ["Evidence Status", evidenceStatus, "Current version uses modeled estimates, not field sensor measurements."],
-    ["Integrity Proof", hashStatus, "Future version can publish dataset hash, timestamp, and transaction reference."]
+    ["Evidence Status", evidenceStatus, "Current version combines public-data assumptions with scenario simulation."],
+    ["Dataset Hash", hashStatus, "Future version can generate a hash for the input dataset and model configuration."],
+    ["Timestamp Proof", state.transparency >= 90 ? "Planned: blockchain or OpenTimestamps" : "Planned after data review", "A timestamp can prove when a dataset or paper version existed."],
+    ["Data Sources", "Public + simulated", "NDVI, weather, grid-emission, and solar-output assumptions should be cited in the research paper."]
   ];
 
   document.querySelector("#verificationGrid").innerHTML = verificationItems.map(([label, value, note]) => `
@@ -497,6 +521,7 @@ function drawEcosystem(model) {
   drawGrass(width, height, model);
   drawSheep(width, height, model);
   drawPeople(width, height, model);
+  drawSceneLabels(width, height);
 }
 
 function drawDryPatches(width, height) {
@@ -653,7 +678,7 @@ function drawPeople(width, height, model) {
   for (let index = 0; index < farmerCount; index += 1) {
     const x = houseX - 64 + index * 26;
     const y = houseY + 92 + (index % 2) * 7;
-    drawFarmer(x, y, 0.82 + (index % 2) * 0.08, index);
+    drawFarmer(x, y, 1.04 + (index % 2) * 0.08, index);
   }
 }
 
@@ -714,6 +739,31 @@ function drawFarmer(x, y, scale, index) {
   ecoCtx.restore();
 }
 
+function drawSceneLabels(width, height) {
+  drawTag(width * 0.13, height * 0.45, "Solar Array");
+  drawTag(width * 0.38, height * 0.83, "Grazing Zone");
+  drawTag(width * 0.63, height * 0.72, "Vegetation Recovery");
+  drawTag(width * 0.78, height * 0.61, "Farmer / Site Manager");
+}
+
+function drawTag(x, y, text) {
+  ecoCtx.save();
+  ecoCtx.font = "800 12px system-ui";
+  const paddingX = 8;
+  const width = ecoCtx.measureText(text).width + paddingX * 2;
+  const height = 24;
+  ecoCtx.fillStyle = "rgba(255, 255, 255, 0.72)";
+  ecoCtx.strokeStyle = "rgba(59, 76, 70, 0.18)";
+  ecoCtx.lineWidth = 1;
+  ecoCtx.beginPath();
+  ecoCtx.roundRect(x, y, width, height, 7);
+  ecoCtx.fill();
+  ecoCtx.stroke();
+  ecoCtx.fillStyle = "#36534d";
+  ecoCtx.fillText(text, x + paddingX, y + 16);
+  ecoCtx.restore();
+}
+
 function drawTrendChart(model, trend = simulateTrend(model)) {
   const { width, height } = resizeCanvasToDisplaySize(trendCanvas);
   drawChartFrame(trendCtx, width, height);
@@ -721,7 +771,9 @@ function drawTrendChart(model, trend = simulateTrend(model)) {
   const padding = { top: 28, right: 28, bottom: 36, left: 52 };
   drawLineSeries(trendCtx, trend.map((item) => item.vegetation), width, height, padding, "#5a9a4e", "Vegetation Cover", 100);
   drawLineSeries(trendCtx, trend.map((item) => clamp(item.sheep / 300, 0, 100)), width, height, padding, "#157a8c", "Sheep Pressure", 100);
-  drawLineSeries(trendCtx, trend.map((item) => clamp((item.vegetation * 185) / 300, 0, 100)), width, height, padding, "#bd7b2f", "Carrying Capacity", 100);
+  drawLineSeries(trendCtx, trend.map((item) => clamp(item.capacity / 300, 0, 100)), width, height, padding, "#bd7b2f", "Carrying Capacity", 100);
+  drawAxisLabel(trendCtx, "Index / %", 16, height / 2, true);
+  drawAxisLabel(trendCtx, "Month", width / 2, height - 6, false);
   drawLegend(trendCtx, [
     ["Vegetation", "#5a9a4e"],
     ["Sheep Pressure", "#157a8c"],
@@ -732,6 +784,7 @@ function drawTrendChart(model, trend = simulateTrend(model)) {
 function drawBarChart(model) {
   const { width, height } = resizeCanvasToDisplaySize(barCanvas);
   drawChartFrame(barCtx, width, height);
+  drawAxisLabel(barCtx, "Benchmark %", 16, height / 2, true);
 
   const bars = getBarData(model);
 
@@ -770,18 +823,37 @@ function drawBarChart(model) {
   });
 }
 
+function drawAxisLabel(ctx, label, x, y, vertical) {
+  ctx.save();
+  ctx.fillStyle = "#60706c";
+  ctx.font = "800 11px system-ui";
+  ctx.textAlign = "center";
+  if (vertical) {
+    ctx.translate(x, y);
+    ctx.rotate(-Math.PI / 2);
+    ctx.fillText(label, 0, 0);
+  } else {
+    ctx.fillText(label, x, y);
+  }
+  ctx.restore();
+}
+
 function drawChartFrame(ctx, width, height) {
   ctx.clearRect(0, 0, width, height);
   ctx.fillStyle = "#fbfcf8";
   ctx.fillRect(0, 0, width, height);
   ctx.strokeStyle = "#dfe6de";
   ctx.lineWidth = 1;
+  ctx.fillStyle = "#7b8985";
+  ctx.font = "700 10px system-ui";
+  ctx.textAlign = "right";
   for (let line = 1; line <= 4; line += 1) {
     const y = 28 + (height - 76) * (line / 4);
     ctx.beginPath();
     ctx.moveTo(38, y);
     ctx.lineTo(width - 22, y);
     ctx.stroke();
+    ctx.fillText(`${100 - line * 25}%`, 34, y + 3);
   }
 }
 

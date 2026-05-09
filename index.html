@@ -13,6 +13,13 @@
           <p class="eyebrow">Solar Sheep Impact Lab</p>
           <h1>Desert-to-Oasis Impact Simulator</h1>
           <p class="subtitle">An interactive AI-assisted simulator for solar grazing, desert restoration, and verifiable climate impact.</p>
+          <nav class="project-nav" aria-label="Project sections">
+            <a href="#simulator">Simulator</a>
+            <a href="#results">Scenario Results</a>
+            <a href="#interpretation">AI Interpretation</a>
+            <a href="#verification">Verification</a>
+            <a href="#methodology">Methodology</a>
+          </nav>
         </div>
         <div class="score-card" aria-label="Impact score">
           <span>Impact Score</span>
@@ -21,14 +28,14 @@
         </div>
       </header>
 
-      <section class="workspace" aria-label="Interactive solar grazing simulator">
+      <section id="simulator" class="workspace" aria-label="Interactive solar grazing simulator">
         <aside class="panel controls-panel" aria-label="Adjust system components">
           <div class="panel-title">
             <h2>Components</h2>
             <button id="resetBtn" type="button">Reset</button>
           </div>
           <div class="preset-panel" aria-label="Scenario presets">
-            <span>Scenario Presets</span>
+            <span>Research Scenarios</span>
             <div id="presets" class="preset-grid"></div>
           </div>
           <div id="controls" class="controls"></div>
@@ -66,13 +73,14 @@
         </aside>
       </section>
 
-      <section class="data-board" aria-label="Impact data charts">
+      <section id="results" class="data-board" aria-label="Impact data charts">
         <article class="chart-panel">
           <div class="chart-header">
             <h2>12-Month Ecosystem Trend</h2>
-            <span id="trendNote">Simulation</span>
+            <span id="trendNote">Index / %</span>
           </div>
           <canvas id="trendCanvas" width="900" height="320"></canvas>
+          <p class="chart-note">Vegetation, sheep pressure, and carrying capacity are simulated indexes for scenario comparison, not field measurements.</p>
         </article>
         <article class="chart-panel">
           <div class="chart-header">
@@ -80,10 +88,11 @@
             <span>Current month</span>
           </div>
           <canvas id="barCanvas" width="640" height="320"></canvas>
+          <p class="chart-note">100% represents the target benchmark for each impact dimension.</p>
         </article>
       </section>
 
-      <section class="summary-panel" aria-label="Current data and environment summary">
+      <section id="interpretation" class="summary-panel" aria-label="Current data and environment summary">
         <div class="summary-header">
           <div>
             <p class="eyebrow">AI-Assisted Interpretation</p>
@@ -96,14 +105,14 @@
       </section>
 
       <section class="insight-board" aria-label="Verification and methodology">
-        <article class="verification-panel">
+        <article id="verification" class="verification-panel">
           <div class="chart-header">
             <h2>Verification Layer</h2>
             <span>Prototype</span>
           </div>
           <div id="verificationGrid" class="verification-grid"></div>
         </article>
-        <article class="method-panel">
+        <article id="methodology" class="method-panel">
           <div class="chart-header">
             <h2>Model Assumptions</h2>
             <span>Research notes</span>
